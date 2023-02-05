@@ -3,6 +3,7 @@ discord==2.1.0
 discord.py==2.1.0
 Flask==2.2.2
 async-timeout==4.0.2
+requests==2.18.4
 schedule==1.1.0
 
 

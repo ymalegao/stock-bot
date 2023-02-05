@@ -18,14 +18,22 @@ intents.message_content = True
 client = commands.Bot(command_prefix='!', intents=intents)
 stocklist = {}
 report={}
+@client.event
+async def on_ready():
+    print(f"logged in as {client.user.name}")
+    await morningstocks()
+    await nightstocks()
+
 @client.command(help="Adds item to list")
 async def addstock(ctx,item,quantity):
     global stocklist
-    stocklist[item]=quantity
-    print(stocklist)
-    await ctx.send(f'Stock successfully added,\nYour stocks are now {stocklist}')
-
-async def dailystocks():
+    if len(item+quantity) > 6:
+        raise commands.BadArgument()
+    for x in stocklist:
+        if x == item:
+            quantity =int(quantity) +int(stocklist[x])
+    else:
+        stocklist[item]=quantity
     for x in stocklist:
         st = yf.Ticker(x)
         last = st.fast_info['last_price']
@@ -33,24 +41,55 @@ async def dailystocks():
         # quant = int(stocklist[x])
         lastprice = (float(f'{last:.2f}'))
         report[x]=lastprice
+        print(report)
+    
+    print(stocklist)
+    await ctx.send(f'Stock successfully added,\nYour stocks are now {stocklist}')
+
+
+
+async def morningstocks():
+    
+    while True:
+        now = datetime.datetime.now()
+        # then = now+datetime.timedelta(days=1)
+
+        then= now.replace(hour=8,minute=24)
+        if then < now:
+            then+=datetime.timedelta(days=1)
+        wait_time = (then-now).total_seconds()
+        await asyncio.sleep(wait_time)
+
+        channel = client.get_channel(1071297075830075405)
+        await channel.send(f"Here is your stock morning summary: {report}  ")
+        await asyncio.sleep(2400)
+
+async def nightstocks():
+    
 
 
     while True:
         now = datetime.datetime.now()
-        then = now+datetime.timedelta(days=1)
-        then= now.replace(hour=6,minute=30)
+        # then = now+datetime.timedelta(days=1)
+
+        then= now.replace(hour=13,minute=00)
+        if then < now:
+            then+=datetime.timedelta(days=1)
         wait_time = (then-now).total_seconds()
         await asyncio.sleep(wait_time)
-        
-        
+
         channel = client.get_channel(1071297075830075405)
-        await channel.send(f"Here is your stock morning summary: {report}  ")
+        await channel.send(f"Here is your evening stock summary: {report}  ")
+        await asyncio.sleep(2400)
+
+    
+
+    
 
 
-@client.event
-async def on_ready():
-    print(f"logged in as {client.user.name}")
-    await dailystocks()
+    
+
+
 
 @client.command(help="shows list")
 async def showstocks(ctx):
@@ -65,11 +104,13 @@ async def showstocks(ctx):
         lastprice= last * quant
         lastprice = (float(f'{lastprice:.2f}'))
         totalval +=lastprice
-    await ctx.send(f'Your stocks are {stocklist}, the total value of your stocks is ${totalval}')
+        portfolio = ', '.join(stocklist)
+
+    await ctx.send(f'Your stocks are {portfolio}, the total value of your stocks is ${totalval}')
 
 
 
-@client.command(name="stock")
+@client.command(help="search stock up based on ticker, help = Here are list of options: 'currency', 'exchange', 'timezone', 'shares', 'market_cap', 'last_price', 'previous_close' 'open', 'day_high', 'day_low', 'regular_market_previous_close', 'last_volume', 'fifty_day_average', 'two_hundred_day_average', 'ten_day_average_volume', 'three_month_average_volume', 'year_high', 'year_low', 'year_change' ")
 async def stock(ctx, ticker):
    if len(ticker) >4:
         raise commands.BadArgument()
@@ -81,9 +122,13 @@ async def stock(ctx, ticker):
    high = tstock.fast_info['day_high']
    lastprice= tstock.fast_info['last_price']
    await ctx.send(f"What information do you want on {name}")
-   @client.command(name="info")
-   async def info(ctx):
+   @client.command(name="performance",help = 'tells you how stock is doing')
+   async def performance(ctx):
         await ctx.send(f"The low in the market today for {name} was {low}, the high was {high}, and the last price was {lastprice} ")
+   @client.command(name="info" ,help = "Here are list of options: 'currency', 'exchange', 'timezone', 'shares', 'market_cap', 'last_price', 'previous_close' 'open', 'day_high', 'day_low', 'regular_market_previous_close', 'last_volume', 'fifty_day_average', 'two_hundred_day_average', 'ten_day_average_volume', 'three_month_average_volume', 'year_high', 'year_low', 'year_change' ")
+   async def info(ctx, type):
+    await ctx.send(tstock.fast_info[type])
+
 
 
 
